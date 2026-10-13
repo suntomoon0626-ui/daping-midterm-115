@@ -26,9 +26,11 @@ function saveExam(input) {
     var state=readState_(),slot=slot_(state,input && input.id);
     if(!state.verified)throw Error('授課資料尚未核對，暫不開放正式填寫。');
     if(slot.locked||slot.pending)throw Error('固定活動或尚待核對的時段禁止填寫。');
+    if(!['國語','英文','數學','自然','自然與科技','自然探索','社會'].includes(slot.subject))throw Error('此課程不列入期中評量。');
     if(!input||!slot.teachers.includes(input.teacher))throw Error('僅限此時段原授課老師填寫。');
     revision_(slot,input.rev);
     var subject=bounded_(input.subject,40,'評量科目'),range=bounded_(input.range,500,'評量範圍');
+    if(!['國語','英文','數學','自然','社會'].includes(subject))throw Error('評量科目僅限國語、英文、數學、自然、社會。');
     state.exams[slot.id]={subject:subject,range:range,teacher:input.teacher,updatedAt:new Date().toISOString()};
     slot.rev++;state.version++;writeState_(state);return state;
   });
@@ -140,4 +142,3 @@ function doPost(e){
   }catch(error){return jsonResponse_({ok:false,error:error.message});}
 }
 function jsonResponse_(value){return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(ContentService.MimeType.JSON);}
-
