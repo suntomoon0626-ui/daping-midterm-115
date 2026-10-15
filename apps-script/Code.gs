@@ -25,6 +25,7 @@ function saveExam(input) {
   return locked_(function(){
     var state=readState_(),slot=slot_(state,input && input.id);
     if(!state.verified)throw Error('授課資料尚未核對，暫不開放正式填寫。');
+    if(slot.g===0&&(slot.d!==4||![2,3].includes(slot.p)||input.subject!=='數學'))throw Error('一年級僅安排週五第三、四節數學評量。');
     if(slot.locked||slot.pending)throw Error('固定活動或尚待核對的時段禁止填寫。');
     if(!['國語','英文','數學','自然','自然與科技','自然探索','社會'].includes(slot.subject))throw Error('此課程不列入期中評量。');
     if(!input||!slot.teachers.includes(input.teacher))throw Error('僅限此時段原授課老師填寫。');
@@ -125,6 +126,14 @@ function readState_(){
   var state=JSON.parse(Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(encoded),'application/gzip')).getDataAsString('UTF-8'));
   state.slots.forEach(function(s){s.teachers=s.teachers.map(function(n){return n==='倩蓉'?'蒨蓉':n;});});
   Object.keys(state.exams).forEach(function(id){if(state.exams[id].teacher==='倩蓉')state.exams[id].teacher='蒨蓉';});
+  if(!state.grade1Math115){
+    var ids=['4-2-0','4-3-0'];
+    ids.forEach(function(id){var old=state.exams[id];if(old&&old.subject!=='數學')throw Error('一年級指定時段已有其他評量，請先核對。');});
+    ids.forEach(function(id){var slot=slot_(state,id);slot.originalLesson={subject:slot.subject,teachers:slot.teachers.slice()};slot.subject='數學';slot.teachers=['蒨蓉'];slot.pending=false;slot.locked=false;slot.rev++;if(!state.exams[id])state.exams[id]={subject:'數學',range:'',teacher:'蒨蓉',updatedAt:new Date().toISOString()};});
+    state.grade1Math115=true;state.version++;
+    state.logs.push({text:'依教務指定：一年級只考數學，安排11/6週五第三、四節；範圍待老師補填。',at:new Date().toISOString()});
+    writeState_(state);
+  }
   return state;
 }
 
