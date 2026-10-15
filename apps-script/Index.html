@@ -35,7 +35,7 @@ function msg(t){$('status').textContent=t;if($('editorStatus'))$('editorStatus')
 function text(tag,t,cls){const e=document.createElement(tag);e.textContent=t;if(cls)e.className=cls;return e}
 const examSubjects={'國語':'國語','英文':'英文','數學':'數學','自然與科技':'自然','自然探索':'自然','自然':'自然','社會':'社會'};
 function updateTeachers(){const selected=$('teacher').value,eligible=new Set(state.slots.filter(s=>examSubjects[s.subject]&&!s.locked&&!s.pending).flatMap(s=>s.teachers));const first=text('option','請選擇老師姓名');first.value='';$('teacher').replaceChildren(first);names.filter(n=>eligible.has(n)).forEach(n=>{const o=text('option',n);o.value=n;$('teacher').append(o)});$('teacher').value=eligible.has(selected)?selected:''}
-function allowed(s){return state.verified&&!!examSubjects[s.subject]&&!s.pending&&!s.locked&&s.teachers.includes($('teacher').value)}
+function allowed(s){return state.verified&&(s.g!==0||(s.d===4&&[2,3].includes(s.p)))&&!!examSubjects[s.subject]&&!s.pending&&!s.locked&&s.teachers.includes($('teacher').value)}
 function render(){
  updateTeachers();
  const grades=[0,1,2,3,4,5],visited=new Set();
@@ -61,7 +61,7 @@ function render(){
  b.onclick=()=>open(s);td.append(b);tr.append(td)
  }body.append(tr)}table.append(body);$('grid').replaceChildren(table);updateAdmin();
 }
-function open(s){if(!allowed(s))return;$('editorStatus').textContent='';current=s;const e=state.exams[s.id];$('editTitle').textContent=`${s.g+1} 年級 · ${days[s.d]} · 第 ${s.p+1} 節`;$('editHint').textContent=`${times[s.p]}｜原課程：${s.subject}｜${s.teachers.join('、')}`;$('subject').value=examSubjects[e?.subject]||examSubjects[s.subject];$('range').value=e?.range||'';$('remove').hidden=!e;$('editor').showModal()}
+function open(s){if(!allowed(s))return;$('editorStatus').textContent='';current=s;const e=state.exams[s.id];$('editTitle').textContent=`${s.g+1} 年級 · ${days[s.d]} · 第 ${s.p+1} 節`;$('editHint').textContent=`${times[s.p]}｜原課程：${s.subject}｜${s.teachers.join('、')}`;$('subject').replaceChildren(...(s.g===0?['數學']:['國語','英文','數學','自然','社會']).map(n=>{const o=text('option',n);o.value=n;return o}));$('subject').value=examSubjects[e?.subject]||examSubjects[s.subject];$('range').value=e?.range||'';$('remove').hidden=!e;$('editor').showModal()}
 $('editForm').onsubmit=async e=>{e.preventDefault();if(!current||!allowed(current))return;const ok=await mutate('saveExam',{id:current.id,rev:current.rev,teacher:$('teacher').value,subject:$('subject').value.trim(),range:$('range').value.trim()});if(ok)$('editor').close()};
 $('remove').onclick=async()=>{if(!current||!allowed(current))return;const ok=await mutate('withdrawExam',{id:current.id,rev:current.rev,teacher:$('teacher').value});if(ok)$('editor').close()};$('cancel').onclick=()=>$('editor').close();
 function updateAdmin(){for(const id of ['from','to']){const selected=$(id).value;$(id).replaceChildren();state.slots.filter(s=>!s.locked).forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=`${s.g+1}年級 ${days[s.d]} 第${s.p+1}節 ${s.subject}／${s.teachers.join('、')}`;$(id).append(o)});if([...$(id).options].some(o=>o.value===selected))$(id).value=selected}const prev=$('correctSlot').value;$('correctSlot').replaceChildren();state.slots.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=`${s.g+1}年級 ${days[s.d]} 第${s.p+1}節 ${s.subject}${s.pending?' · 待核對':''}`;$('correctSlot').append(o)});if([...$('correctSlot').options].some(o=>o.value===prev))$('correctSlot').value=prev;courseFields();$('logs').textContent=state.logs.slice(-6).map(x=>x.at+' '+x.text).join('\n')}
